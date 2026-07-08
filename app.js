@@ -311,5 +311,7 @@ if (require.main === module) {
 module.exports = {
   entrenar,
   evaluarEpisodio,
-  normalizarSensores
+  normalizarSensores,
+  estadoDeObservacion,
+  siguienteAlerta
 };
