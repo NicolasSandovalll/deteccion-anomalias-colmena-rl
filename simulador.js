@@ -7,9 +7,6 @@
  * sensores (temperatura, humedad, vibración y flujo de entrada/salida de
  * abejas) que sigan un patrón circadiano predecible a lo largo del día y que
  * puedan verse alterados por anomalías puntuales.
- *
- * NOTA: aquí NO hay Q-Learning ni agente alguno. Este archivo solo se encarga
- * de producir los datos que más adelante consumirá el aprendizaje por refuerzo.
  * ---------------------------------------------------------------------------
  */
 
