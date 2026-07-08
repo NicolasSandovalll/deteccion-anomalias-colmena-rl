@@ -7,7 +7,16 @@
     "train": "node app.js",
     "test": "node -e 'console.log(\"Tests pendientes\")'"
   },
-  "keywords": ["reinforcement-learning", "q-learning", "anomaly-detection", "beehive"],
+  "keywords": [
+    "reinforcement-learning",
+    "q-learning",
+    "anomaly-detection",
+    "beehive"
+  ],
   "author": "Estudiante SI",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
 }
