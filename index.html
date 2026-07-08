@@ -181,18 +181,46 @@
   <div class="contenedor">
     <header>
       <h1>Detección de anomalías en colmena · Q-Learning</h1>
-      <p>
-        Este proyecto entrena un agente de aprendizaje por refuerzo (Q-Learning)
-        para vigilar una colmena a partir de lecturas de sensores (temperatura,
-        humedad, vibración y flujo de abejas) y decidir cuándo emitir un aviso o
-        una alarma ante anomalías como avispas, despoblamiento, enjambrazón,
-        lluvia o exceso de humedad. Pulsa el botón para entrenar el agente y ver
-        cómo evoluciona su recompensa.
-      </p>
+
+      <section id="contexto" style="margin: 30px 0; line-height: 1.6; text-align: left;">
+
+        <h2>¿Qué es este proyecto?</h2>
+        <p>Implementación de un agente de Aprendizaje por Refuerzo (RL)
+        usando Q-Learning para detectar anomalías en una colmena de abejas.</p>
+
+        <h3>El problema</h3>
+        <p>Un monitor inteligente recibe lecturas de 4 sensores
+        (temperatura, humedad, vibración, flujo de abejas) con patrones
+        circadianos predecibles. Debe detectar anomalías:</p>
+        <ul>
+          <li><strong>Anomalías graves:</strong> avispas (vibración ↑↑, flujo ↓↓),
+              despoblamiento (flujo ↓↓), enjambrazón (flujo ↑↑)</li>
+          <li><strong>Anomalías leves:</strong> lluvia (temp ↓, humedad ↑),
+              exceso humedad (humedad ↑↑)</li>
+        </ul>
+
+        <h3>Modelado en RL</h3>
+        <ul>
+          <li><strong>Estado:</strong> 972 estados (4 sensores × 3 niveles + 6 bandas horarias + flag alerta)</li>
+          <li><strong>Acciones:</strong> Observar, Aviso (leve), Alarma (grave)</li>
+          <li><strong>Recompensa:</strong> +50 (alarma correcta), +25 (aviso correcto),
+              -0.5 (costo/paso), -15 (falsa alarma), -5 (ignorar anomalía)</li>
+          <li><strong>Algoritmo:</strong> Q-Learning tabular (α=0.1, γ=0.95, ε: 1.0→0.05)</li>
+        </ul>
+
+        <h3>Entrenamiento</h3>
+        <p>1000 episodios de aprendizaje (cada episodio = 1 semana = 168 pasos).
+        Luego: evaluación en 10 episodios nuevos (explotación pura, ε=0).
+        Métrica: % de pasos clasificados correctamente.</p>
+
+      </section>
     </header>
 
     <div class="acciones">
       <button id="btnEntrenar" onclick="entrenar()">Entrenar agente</button>
+      <p style="font-size:12px; color:#999; margin-top:10px;">
+        (1000 episodios + evaluación ≈ 5 segundos)
+      </p>
     </div>
 
     <!-- Spinner de carga -->
