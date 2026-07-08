@@ -109,15 +109,41 @@
       text-align: center;
     }
 
-    /* Tarjetas de resultados (ocultas hasta entrenar) */
-    #resultados { display: none; }
+    /* Resultados en dos columnas: gráfica grande (izq) y métricas compactas (der). */
+    #resultados {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+      align-items: flex-start;
+    }
 
-    .tarjeta {
+    #grafica-container {
+      flex: 2.5;  /* ~70% del espacio */
+      min-width: 0;
+    }
+
+    #metricas-container {
+      flex: 1;    /* ~30% del espacio */
+      min-width: 0;
+      max-width: 300px;
+    }
+
+    /* Tarjeta visual para cada columna. */
+    #grafica-container, #metricas-container {
       background: #fff;
       border: 1px solid var(--gris-borde);
       border-radius: 10px;
       padding: 1.25rem;
-      margin-bottom: 1.5rem;
+    }
+
+    #grafica-container canvas {
+      max-height: 500px;
+    }
+
+    /* En pantallas pequeñas, apilar en una sola columna (gráfica a ancho completo). */
+    @media (max-width: 900px) {
+      #resultados { flex-direction: column; }
+      #metricas-container { max-width: none; }
     }
 
     /* Gráfica responsive */
@@ -129,12 +155,17 @@
       margin: 0 auto;
       width: 100%;
       max-width: 520px;
+      font-size: 14px;
     }
 
     th, td {
       border: 1px solid var(--gris-borde);
       padding: 10px 14px;
       text-align: left;
+    }
+
+    table td {
+      padding: 8px 12px;
     }
 
     th {
@@ -173,16 +204,15 @@
     <!-- Mensaje de error -->
     <div id="error"></div>
 
-    <!-- Resultados: gráfica + métricas -->
-    <div id="resultados">
-      <div class="tarjeta">
+    <!-- Resultados: gráfica (izquierda) y métricas (derecha) -->
+    <div id="resultados" style="display:none;">
+      <div id="grafica-container">
         <h2>Evolución del entrenamiento</h2>
         <canvas id="grafica"></canvas>
       </div>
-
-      <div class="tarjeta">
+      <div id="metricas-container">
         <h2>Métricas de evaluación</h2>
-        <div id="tablaMetricas"></div>
+        <div id="metricas"></div>
       </div>
     </div>
   </div>
@@ -215,7 +245,7 @@
         mostrarGrafica(datos.historialRecompensas);
         mostrarMetricas(datos.evaluacion, datos.tiempoEjecucion);
 
-        resultados.style.display = 'block';
+        resultados.style.display = 'flex';
       } catch (err) {
         errorDiv.textContent = 'Error al entrenar: ' + err.message;
         errorDiv.style.display = 'block';
@@ -286,7 +316,7 @@
         .map(([clave, valor]) => `<tr><th>${clave}</th><td>${valor}</td></tr>`)
         .join('');
 
-      document.getElementById('tablaMetricas').innerHTML =
+      document.getElementById('metricas').innerHTML =
         `<table><tbody>${cuerpo}</tbody></table>`;
     }
   </script>
