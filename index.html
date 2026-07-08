@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detección de anomalías en colmena - Q-Learning</title>
+
+  <!-- Chart.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --azul: #2563eb;
+      --azul-oscuro: #1d4ed8;
+      --gris-borde: #d1d5db;
+      --gris-fondo: #f3f4f6;
+      --texto: #1f2937;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--gris-fondo);
+      color: var(--texto);
+      margin: 0;
+      padding: 2rem 1rem;
+      line-height: 1.5;
+    }
+
+    .contenedor {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin: 2rem 0 1rem;
+    }
+
+    header p {
+      max-width: 640px;
+      margin: 0 auto;
+      color: #4b5563;
+    }
+
+    /* Botón centrado */
+    .acciones {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    #btnEntrenar {
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #btnEntrenar:hover:not(:disabled) { background: var(--azul-oscuro); }
+    #btnEntrenar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Spinner giratorio */
+    #loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+      color: #4b5563;
+    }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid var(--gris-borde);
+      border-top-color: var(--azul);
+      border-radius: 50%;
+      animation: girar 0.8s linear infinite;
+    }
+
+    @keyframes girar {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Mensaje de error */
+    #error {
+      display: none;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+
+    /* Tarjetas de resultados (ocultas hasta entrenar) */
+    #resultados { display: none; }
+
+    .tarjeta {
+      background: #fff;
+      border: 1px solid var(--gris-borde);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Gráfica responsive */
+    #grafica { max-width: 100%; }
+
+    /* Tabla de métricas */
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    th, td {
+      border: 1px solid var(--gris-borde);
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    th {
+      background: #eff6ff;
+      width: 55%;
+    }
+
+    tbody tr:nth-child(even) td { background: #f9fafb; }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <header>
+      <h1>Detección de anomalías en colmena · Q-Learning</h1>
+      <p>
+        Este proyecto entrena un agente de aprendizaje por refuerzo (Q-Learning)
+        para vigilar una colmena a partir de lecturas de sensores (temperatura,
+        humedad, vibración y flujo de abejas) y decidir cuándo emitir un aviso o
+        una alarma ante anomalías como avispas, despoblamiento, enjambrazón,
+        lluvia o exceso de humedad. Pulsa el botón para entrenar el agente y ver
+        cómo evoluciona su recompensa.
+      </p>
+    </header>
+
+    <div class="acciones">
+      <button id="btnEntrenar" onclick="entrenar()">Entrenar agente</button>
+    </div>
+
+    <!-- Spinner de carga -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <span>Entrenando agente (1000 episodios)…</span>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div id="error"></div>
+
+    <!-- Resultados: gráfica + métricas -->
+    <div id="resultados">
+      <div class="tarjeta">
+        <h2>Evolución del entrenamiento</h2>
+        <canvas id="grafica"></canvas>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Métricas de evaluación</h2>
+        <div id="tablaMetricas"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Referencia al objeto Chart para poder destruirlo antes de redibujar.
+    let graficaChart = null;
+
+    /**
+     * Lanza el entrenamiento en el servidor y pinta los resultados.
+     * Gestiona el estado de la interfaz (botón, spinner, errores).
+     */
+    async function entrenar() {
+      const btn = document.getElementById('btnEntrenar');
+      const loading = document.getElementById('loading');
+      const errorDiv = document.getElementById('error');
+      const resultados = document.getElementById('resultados');
+
+      // Estado "cargando".
+      btn.disabled = true;
+      loading.style.display = 'flex';
+      errorDiv.style.display = 'none';
+
+      try {
+        const resp = await fetch('/api/train');
+        if (!resp.ok) throw new Error('El servidor respondió ' + resp.status);
+
+        const datos = await resp.json();
+
+        mostrarGrafica(datos.historialRecompensas);
+        mostrarMetricas(datos.evaluacion, datos.tiempoEjecucion);
+
+        resultados.style.display = 'block';
+      } catch (err) {
+        errorDiv.textContent = 'Error al entrenar: ' + err.message;
+        errorDiv.style.display = 'block';
+      } finally {
+        // Restaurar interfaz pase lo que pase.
+        loading.style.display = 'none';
+        btn.disabled = false;
+      }
+    }
+
+    /**
+     * Dibuja la evolución de la recompensa por episodio con Chart.js.
+     * @param {number[]} historial - recompensa acumulada de cada episodio.
+     */
+    function mostrarGrafica(historial) {
+      const etiquetas = historial.map((_, i) => i); // 0..999
+
+      // Si ya había una gráfica, se destruye para no superponer.
+      if (graficaChart) graficaChart.destroy();
+
+      const ctx = document.getElementById('grafica').getContext('2d');
+      graficaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: etiquetas,
+          datasets: [{
+            label: 'Recompensa acumulada',
+            data: historial,
+            borderColor: '#2563eb',
+            backgroundColor: '#2563eb',
+            pointRadius: 1,
+            borderWidth: 1.5,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Evolución de recompensa por episodio'
+            },
+            legend: { display: true }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Episodio' } },
+            y: { title: { display: true, text: 'Recompensa' } }
+          }
+        }
+      });
+    }
+
+    /**
+     * Rellena la tabla de métricas de evaluación.
+     * @param {object} evaluacion - {aciertos, falsoPositivos, falsoNegativos, recompensaMedia, porcentajeAciertos}
+     * @param {number} tiempoEjecucion - segundos.
+     */
+    function mostrarMetricas(evaluacion, tiempoEjecucion) {
+      const filas = [
+        ['Aciertos', `${evaluacion.aciertos} / 1680 (${evaluacion.porcentajeAciertos.toFixed(1)}%)`],
+        ['Falsos positivos', evaluacion.falsoPositivos],
+        ['Falsos negativos', evaluacion.falsoNegativos],
+        ['Recompensa media', evaluacion.recompensaMedia.toFixed(2)],
+        ['Tiempo de ejecución', `${tiempoEjecucion.toFixed(3)} s`]
+      ];
+
+      const cuerpo = filas
+        .map(([clave, valor]) => `<tr><th>${clave}</th><td>${valor}</td></tr>`)
+        .join('');
+
+      document.getElementById('tablaMetricas').innerHTML =
+        `<table><tbody>${cuerpo}</tbody></table>`;
+    }
+  </script>
+</body>
+</html>
