@@ -224,5 +224,5 @@ recurrentes (LSTM) y ajuste de la función de recompensa.
 
 ## Autoría y licencia
 
-- **Autor**: Estudiante de Sistemas Inteligentes.
+- **Autor**: Nicolás Sandoval Lagos.
 - **Licencia**: MIT (ver `package.json`).
